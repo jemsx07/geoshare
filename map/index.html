@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+    <title>GARUD SPY | MAP</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #020617;
+            --panel: rgba(15, 23, 42, 0.85);
+            --accent: #22d3ee;
+            --success: #10b981;
+            --text: #f1f5f9;
+            --text-dim: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+        #map { position: absolute; inset: 0; z-index: 1; background: var(--bg); }
+        
+        /* TOP BANNER */
+        .top-banner { position: fixed; top: 0; left: 0; right: 0; height: 60px; padding: 0 20px; z-index: 1000; display: flex; align-items: center; background: linear-gradient(to bottom, rgba(2,6,23,0.9), transparent); pointer-events: none; }
+        .status-pill { background: var(--panel); border: 1px solid var(--border); padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; pointer-events: auto; }
+        .live-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        
+        /* HUD PANEL */
+        .hud-panel { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; z-index: 1000; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 20px; backdrop-filter: blur(16px); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .data-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .data-box { background: rgba(255, 255, 255, 0.03); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .label { font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .value { font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: var(--accent); }
+        .action-area { display: flex; align-items: center; justify-content: space-between; padding-top: 15px; border-top: 1px solid var(--border); }
+        .sync-time { font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; color: var(--success); }
+        .refresh-btn { background: var(--accent); color: #021a0e; border: none; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        
+        /* FOOTER */
+        footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px 0; background: linear-gradient(to top, rgba(2,6,23,0.95), transparent); text-align: center; z-index: 900; }
+        .footer-text { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent); letter-spacing: 4px; text-transform: uppercase; opacity: 0.8; text-shadow: 0 0 10px var(--accent); }
+
+        /* RADAR ICON */
+        .radar-pin { width: 24px; height: 24px; background: rgba(34, 211, 238, 0.2); border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px var(--accent); }
+        .radar-inner { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+        .leaflet-popup-content-wrapper { background: var(--panel) !important; color: white !important; backdrop-filter: blur(10px); border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+    <div class="top-banner">
+        <div class="status-pill">
+            <div class="live-dot"></div>
+            SYSTEM_ACTIVE : TRACKING_NODE
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="hud-panel">
+        <div class="data-row">
+            <div class="data-box"><div class="label">Latitude</div><div class="value" id="latDisp">0.000000</div></div>
+            <div class="data-box"><div class="label">Longitude</div><div class="value" id="lngDisp">0.000000</div></div>
+        </div>
+        <div class="action-area">
+            <div class="sync-time" id="syncMsg">Uplink connecting...</div>
+            <button class="refresh-btn" onclick="updateMap()">Sync Now</button>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-text">DESIGNED BY JAIMIN PARMAR</div>
+    </footer>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzHhjF-_78h2N3QiSAOGtF00GyUOWKxqLdkoAMp34xUMOT4VYjeJ56Ipp_ePglvLO5d/exec';
+
+        const streetMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CartoDB' });
+        const satelliteMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+        const map = L.map('map', { center: [0, 0], zoom: 2, layers: [satelliteMap], zoomControl: true, attributionControl: false });
+        L.control.layers({ "Satellite": satelliteMap, "Tactical": streetMap }).addTo(map);
+
+        const customIcon = L.divIcon({
+            className: 'radar-wrapper',
+            html: '<div class="radar-pin"><div class="radar-inner"></div></div>',
+            iconSize: [24, 24], iconAnchor: [12, 12]
+        });
+
+        let marker;
+
+        async function updateMap() {
+            try {
+                const res = await fetch(API_URL + "?t=" + Date.now(), {
+                    method: 'GET',
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+
+                const data = await res.json();
+                const lat = parseFloat(data.lat);
+                const lng = parseFloat(data.lng);
+                
+                // Timestamp Formatting
+                const rawTime = new Date(data.time);
+                const time = rawTime.toLocaleString('en-IN', { 
+                    day: '2-digit', 
+                    month: 'short', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    const coords = [lat, lng];
+                    document.getElementById('latDisp').innerText = lat.toFixed(6);
+                    document.getElementById('lngDisp').innerText = lng.toFixed(6);
+                    document.getElementById('syncMsg').innerText = "SYNCED: " + time;
+                    document.getElementById('syncMsg').style.color = "var(--success)";
+
+                    if (marker) {
+                        marker.setLatLng(coords);
+                    } else {
+                        marker = L.marker(coords, { icon: customIcon }).addTo(map);
+                        map.setView(coords, 17);
+                    }
+                    map.panTo(coords);
+                    marker.bindPopup(`<b>TARGET ACQUIRED</b><br>${time}`).openPopup();
+                }
+            } catch (err) {
+                console.error("Uplink Error:", err);
+                document.getElementById('syncMsg').innerText = "UPLINK_ERROR";
+                document.getElementById('syncMsg').style.color = "#ef4444";
+            }
+        }
+
+        setInterval(updateMap, 15000);
+        updateMap();
+    </script>
+</body>
+</html>
